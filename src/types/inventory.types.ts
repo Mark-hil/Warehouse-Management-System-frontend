@@ -5,15 +5,20 @@ export interface Category {
 }
 
 export interface Item {
-  id: string;
+  item_id: number;
+  name: string;
+  description: string | null;
+  unitPrice: number;
+  unitMeasurement: string;
+  category?: Category;
+}
+
+export interface CreateItemData {
   name: string;
   description: string;
-  unitPrice: string | number;
+  unitPrice: number;
   unitMeasurement: string;
-  categoryId: string;
-  category?: Category;
-  createdAt: string;
-  updatedAt: string;
+  categoryId: number;
 }
 
 export interface Warehouse {
