@@ -4,27 +4,25 @@ import Modal from '../../components/common/Modal';
 import type { Column } from '../../components/common/Table';
 import Table from '../../components/common/Table';
 import { Form, Input, Select, Button } from '../../components/forms';
+import { getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../api/inventory';
+import type { Warehouse } from '../../types/inventory.types';
 
-interface Warehouse {
-  id: string;
-  name: string;
-  location: string;
-  capacity: number;
-  currentStock: number;
-  manager: string;
-  status: 'active' | 'inactive' | 'maintenance';
-}
+
 
 const Warehouses: React.FC = () => {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
+  const [formData, setFormData] = useState<{
+    warehouse_name: string;
+    location: string;
+    capacity: string;
+    is_active: boolean;
+  }>({
+    warehouse_name: '',
     location: '',
     capacity: '',
-    manager: '',
-    status: 'active' as Warehouse['status']
+    is_active: true
   });
 
   useEffect(() => {
@@ -33,9 +31,7 @@ const Warehouses: React.FC = () => {
 
   const fetchWarehouses = async () => {
     try {
-      // Replace with your API call
-      const response = await fetch('/api/inventory/warehouses');
-      const data = await response.json();
+      const data = await getWarehouses();
       setWarehouses(data);
     } catch (error) {
       console.error('Error fetching warehouses:', error);
@@ -51,21 +47,13 @@ const Warehouses: React.FC = () => {
       };
 
       if (selectedWarehouse) {
-        await fetch(`/api/inventory/warehouses/${selectedWarehouse.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+        await updateWarehouse(selectedWarehouse.warehouse_id, payload);
       } else {
-        await fetch('/api/inventory/warehouses', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+        await createWarehouse(payload);
       }
       setIsModalOpen(false);
       setSelectedWarehouse(null);
-      setFormData({ name: '', location: '', capacity: '', manager: '', status: 'active' });
+      setFormData({ warehouse_name: '', location: '', capacity: '', is_active: true });
       fetchWarehouses();
     } catch (error) {
       console.error('Error saving warehouse:', error);
@@ -75,21 +63,18 @@ const Warehouses: React.FC = () => {
   const handleEdit = (warehouse: Warehouse) => {
     setSelectedWarehouse(warehouse);
     setFormData({
-      name: warehouse.name,
+      warehouse_name: warehouse.warehouse_name,
       location: warehouse.location,
       capacity: warehouse.capacity.toString(),
-      manager: warehouse.manager,
-      status: warehouse.status
+      is_active: warehouse.is_active
     });
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this warehouse?')) {
       try {
-        await fetch(`/api/inventory/warehouses/${id}`, {
-          method: 'DELETE'
-        });
+        await deleteWarehouse(id);
         fetchWarehouses();
       } catch (error) {
         console.error('Error deleting warehouse:', error);
@@ -97,17 +82,8 @@ const Warehouses: React.FC = () => {
     }
   };
 
-  const getStatusBadgeColor = (status: Warehouse['status']) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800';
-      case 'maintenance':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getStatusBadgeColor = (isActive: boolean) => {
+    return isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
   };
 
   const columns: Column<Warehouse>[] = [
@@ -116,7 +92,7 @@ const Warehouses: React.FC = () => {
       accessor: (row: Warehouse) => (
         <div className="flex items-center">
           <MapPin className="w-4 h-4 mr-2 text-blue-500" />
-          {row.name}
+          {row.warehouse_name}
         </div>
       )
     },
@@ -127,23 +103,23 @@ const Warehouses: React.FC = () => {
         <div className="flex items-center">
           <Package className="w-4 h-4 mr-2 text-gray-500" />
           <div>
-            <div className="text-sm font-medium">{row.currentStock} / {row.capacity}</div>
+            <div className="text-sm font-medium">{row.current_capacity} / {row.capacity}</div>
             <div className="w-24 h-2 bg-gray-200 rounded-full mt-1">
               <div
                 className="h-2 bg-blue-500 rounded-full"
-                style={{ width: `${(row.currentStock / row.capacity) * 100}%` }}
+                style={{ width: `${(row.current_capacity / row.capacity) * 100}%` }}
               />
             </div>
           </div>
         </div>
       )
     },
-    { header: 'Manager', accessor: 'manager' as keyof Warehouse },
+
     {
       header: 'Status',
       accessor: (row: Warehouse) => (
-        <span className={`px-2 py-1 rounded-full text-sm ${getStatusBadgeColor(row.status)}`}>
-          {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+        <span className={`px-2 py-1 rounded-full text-sm ${getStatusBadgeColor(row.is_active)}`}>
+          {row.is_active ? 'Active' : 'Inactive'}
         </span>
       )
     },
@@ -160,7 +136,7 @@ const Warehouses: React.FC = () => {
           </Button>
           <Button
             variant="danger"
-            onClick={() => handleDelete(row.id)}
+            onClick={() => handleDelete(row.warehouse_id)}
             className="min-w-0 p-2"
           >
             <Trash2 size={16} />
@@ -181,7 +157,7 @@ const Warehouses: React.FC = () => {
           variant="primary"
           onClick={() => {
             setSelectedWarehouse(null);
-            setFormData({ name: '', location: '', capacity: '', manager: '', status: 'active' });
+            setFormData({ warehouse_name: '', location: '', capacity: '', is_active: true });
             setIsModalOpen(true);
           }}
         >
@@ -195,7 +171,7 @@ const Warehouses: React.FC = () => {
           columns={columns}
           data={warehouses}
           emptyMessage="No warehouses found"
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.warehouse_id.toString()}
         />
       </div>
 
@@ -211,9 +187,9 @@ const Warehouses: React.FC = () => {
         >
           <Input
             label="Warehouse Name"
-            name="name"
-            value={formData.name}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
+            name="warehouse_name"
+            value={formData.warehouse_name}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, warehouse_name: e.target.value })}
             placeholder="Enter warehouse name"
             required
           />
@@ -234,24 +210,15 @@ const Warehouses: React.FC = () => {
             placeholder="Enter warehouse capacity"
             required
           />
-          <Input
-            label="Manager"
-            name="manager"
-            value={formData.manager}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, manager: e.target.value })}
-            placeholder="Enter warehouse manager"
-            required
-          />
           <Select
             label="Status"
-            name="status"
-            value={formData.status}
-            onChange={(value: string) => setFormData({ ...formData, status: value as Warehouse['status'] })}
+            name="is_active"
+            value={formData.is_active ? 'active' : 'inactive'}
+            onChange={(value: string) => setFormData({ ...formData, is_active: value === 'active' })}
             required
             options={[
               { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive' },
-              { value: 'maintenance', label: 'Maintenance' }
+              { value: 'inactive', label: 'Inactive' }
             ]}
           />
         </Form>

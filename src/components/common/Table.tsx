@@ -3,6 +3,7 @@ import React from 'react';
 export interface Column<T> {
   header: string;
   accessor: keyof T | ((row: T) => React.ReactNode);
+  cell?: ({ row }: { row: { original: T } }) => React.ReactNode;
   className?: string;
 }
 

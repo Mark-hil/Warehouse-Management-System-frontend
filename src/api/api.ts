@@ -14,6 +14,10 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
+      timeout: 10000, // 10 second timeout
+      validateStatus: (status) => {
+        return status >= 200 && status < 500; // Don't reject if status is less than 500
+      }
     });
 
     // Add request interceptor for authentication
@@ -106,8 +110,30 @@ class ApiClient {
   }
 
   private handleError(error: AxiosError): Error {
+    if (error.response?.status === 500) {
+      console.error('Server Error Details:', {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers,
+        config: error.config
+      });
+      return new Error('Internal server error. Please try again later.');
+    }
+
     const response = error.response?.data as ErrorResponse;
-    return new Error(response?.message || error.message || 'An unexpected error occurred');
+    let errorMessage = 'An unexpected error occurred';
+
+    if (typeof response === 'string') {
+      errorMessage = response;
+    } else if (response?.message) {
+      errorMessage = response.message;
+    } else if (response?.detail) {
+      errorMessage = response.detail;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    return new Error(errorMessage);
   }
 }
 

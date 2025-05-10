@@ -58,6 +58,8 @@ export interface LoginResponse {
 }
 
 export interface ErrorResponse {
-  message: string;
-  status: number;
+  message?: string;
+  status?: number;
+  detail?: string;
+  [key: string]: any; // Allow for additional error fields from the server
 }

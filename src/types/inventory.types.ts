@@ -1,7 +1,10 @@
 export interface Category {
   category_id: number;
   name: string;
-  description: string | null;
+  description: string;
+  created_at: string;
+  item_count: number;
+  warehouses?: number[];
 }
 
 export interface Item {
@@ -22,39 +25,50 @@ export interface CreateItemData {
 }
 
 export interface Warehouse {
-  id: string;
-  name: string;
+  warehouse_id: number;
+  warehouse_name: string;
   location: string;
   capacity: number;
-  currentCapacity: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  current_capacity: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface Inventory {
-  id: string;
-  itemId: string;
-  item?: Item;
-  warehouseId: string;
-  warehouse?: Warehouse;
+export interface DistributionItem {
+  distribution_item_id: number;
+  item: number;
+  item_name: string;
   quantity: number;
-  minimumQuantity: number;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface Distribution {
-  id: string;
-  itemId: string;
-  item?: Item;
-  sourceWarehouseId: string;
-  sourceWarehouse?: Warehouse;
-  destinationWarehouseId: string;
-  destinationWarehouse?: Warehouse;
-  quantity: number;
-  userId: string;
+  distribution_id: number;
+  source_warehouse: number;
+  source_warehouse_name: string;
+  destination_warehouse: number;
+  destination_warehouse_name: string;
+  created_by: number;
+  created_by_name: string;
+  created_at: string;
+  estimated_delivery: string;
   status: 'pending' | 'in_transit' | 'completed' | 'cancelled';
-  createdAt: string;
-  updatedAt: string;
+  items: DistributionItem[];
+}
+
+export interface Inventory {
+  inventory_id: number;
+  warehouse: Warehouse;
+  item: Item;
+  available_quantity: number;
+  minimum_quantity: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateDistributionData {
+  source_warehouse: number;
+  destination_warehouse: number;
+  estimated_delivery: string;
+  items: { item: number; quantity: number }[];
 }
