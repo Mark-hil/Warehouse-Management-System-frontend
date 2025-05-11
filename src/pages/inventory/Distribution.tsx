@@ -10,6 +10,8 @@ import { getWarehouses, getInventoryByWarehouse } from '../../api/inventory';
 import { getDistributions, createDistribution } from '../../api/distribution';
 
 const DistributionPage: React.FC = () => {
+  // Add a container class for better spacing and organization
+  const containerClass = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
   const [distributions, setDistributions] = useState<Distribution[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -223,28 +225,31 @@ const DistributionPage: React.FC = () => {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Distribution</h1>
-          <p className="text-gray-600">Manage inventory transfers between warehouses</p>
+    <div className={containerClass}>
+      <div className="flex justify-between items-center mb-6 bg-white p-6 rounded-lg shadow-sm">
+        <div className="flex items-center gap-3">
+          <TruckIcon className="h-8 w-8 text-indigo-600" />
+          <h1 className="text-3xl font-bold text-gray-900">Distribution</h1>
         </div>
-        <Button
-          variant="primary"
+        <p className="text-gray-600">Manage inventory transfers between warehouses</p>
+        <button
           onClick={() => setIsModalOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
         >
-          <TruckIcon className="mr-2" size={16} />
-          New Transfer
-        </Button>
+          <PackageCheck className="h-5 w-5" />
+          Add New Distribution
+        </button>
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <Table
-          columns={columns}
-          data={distributions}
-          emptyMessage="No distributions found"
-          keyExtractor={(item) => item.distribution_id.toString()}
-        />
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden mt-6">
+          <Table
+            columns={columns}
+            data={distributions}
+            emptyMessage="No distributions found"
+            keyExtractor={(item) => item.distribution_id.toString()}
+          />
+        </div>
       </div>
 
       <Modal
@@ -342,15 +347,17 @@ const DistributionPage: React.FC = () => {
               <div className="px-4 py-5 sm:p-6">
                 <div className="md:grid md:grid-cols-3 md:gap-6">
                   <div className="md:col-span-1">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0">
-                        <div className="rounded-md bg-green-50 p-3">
-                          <PackageCheck className="h-6 w-6 text-green-600" aria-hidden="true" />
+                    <div>
+                      <div className="flex items-start space-x-4">
+                        <div className="flex-shrink-0">
+                          <div className="rounded-md bg-gray-100 p-2">
+                            <PackageCheck className="h-5 w-5 text-gray-600" aria-hidden="true" />
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-medium leading-6 text-gray-900">Distribution Items</h3>
-                        <p className="mt-1 text-sm text-gray-500">Select items and quantities for distribution.</p>
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900">Distribution Items</h3>
+                          <p className="mt-1 text-sm text-gray-500">Select items from source warehouse and specify quantities for distribution.</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -365,27 +372,26 @@ const DistributionPage: React.FC = () => {
                             ...formData,
                             items: [...formData.items, { id: '', quantity: 0 }]
                           })}
-                          className="inline-flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                          className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={!formData.sourceWarehouse}
                         >
-                          <span className="hidden sm:block">Add New Item</span>
-                          <span className="sm:hidden">Add</span>
+                          Add New Item
                         </button>
                       </div>
 
                       {/* Items List */}
-                      <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="space-y-4">
                         <div className="space-y-4">
                           {formData.items.map((item, index) => (
                             <div key={index} className="bg-white rounded-lg shadow-sm overflow-hidden">
                               <div className="p-4">
                                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
                                   <div className="sm:col-span-10">
-                                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                                    <div className="bg-white p-4 rounded border border-gray-200 w-full">
+                                      <div className="grid grid-cols-12 gap-2 items-end">
                                         {/* Item Selection */}
-                                        <div className="md:col-span-7">
-                                          <label className="block text-sm font-medium text-gray-700 mb-1">Item Name *</label>
+                                        <div className="col-span-6">
+                                          <label className="block text-sm font-medium text-gray-700 mb-2">Item Name *</label>
                                           <select
                                             value={item.id}
                                             onChange={(e) => {
@@ -394,33 +400,37 @@ const DistributionPage: React.FC = () => {
                                               newItems[index] = { ...newItems[index], id: selectedId, quantity: 0 };
                                               setFormData(prev => ({ ...prev, items: newItems }));
                                             }}
-                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm h-10 bg-white font-medium text-gray-900"
                                             required
                                           >
-                                            <option value="">Select Item</option>
+                                            <option value="" className="text-gray-500">Select Item</option>
                                             {sourceInventory && sourceInventory.length > 0 ? (
                                               sourceInventory.map((inv) => (
-                                                <option key={inv.item.item_id} value={inv.item.item_id}>
+                                                <option 
+                                                  key={inv.item.item_id} 
+                                                  value={inv.item.item_id}
+                                                  className="font-medium text-gray-900"
+                                                >
                                                   {inv.item.name}
                                                 </option>
                                               ))
                                             ) : (
-                                              <option disabled>No items available</option>
+                                              <option disabled className="text-gray-500">No items available</option>
                                             )}
                                           </select>
                                         </div>
 
                                         {/* Available Quantity Display */}
-                                        <div className="md:col-span-2">
-                                          <label className="block text-sm font-medium text-gray-700 mb-1">Available</label>
-                                          <div className="h-10 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm text-gray-500">
+                                        <div className="col-span-3 text-center">
+                                          <label className="block text-sm font-medium text-gray-700 mb-2">Available</label>
+                                          <div className="h-10 w-16 mx-auto px-2 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm text-gray-600 flex items-center justify-center font-medium">
                                             {item.id ? sourceInventory?.find(inv => inv.item.item_id.toString() === item.id)?.available_quantity || 0 : '-'}
                                           </div>
                                         </div>
 
                                         {/* Distribution Quantity Input */}
-                                        <div className="md:col-span-3">
-                                          <label className="block text-sm font-medium text-gray-700 mb-1">Distribute *</label>
+                                        <div className="col-span-3 text-center">
+                                          <label className="block text-sm font-medium text-gray-700 mb-2">Distribute *</label>
                                           <input
                                             type="number"
                                             value={item.quantity}
@@ -429,7 +439,7 @@ const DistributionPage: React.FC = () => {
                                               newItems[index] = { ...newItems[index], quantity: parseInt(e.target.value) || 0 };
                                               setFormData({ ...formData, items: newItems });
                                             }}
-                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                            className="block w-16 mx-auto rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm h-10 text-center"
                                             placeholder="Quantity"
                                             min="1"
                                             max={item.id ? sourceInventory?.find(inv => inv.item.item_id.toString() === item.id)?.available_quantity : undefined}
@@ -445,11 +455,17 @@ const DistributionPage: React.FC = () => {
                                             const availableQty = sourceInventory?.find(inv => inv.item.item_id.toString() === item.id)?.available_quantity || 0;
                                             if (item.quantity > availableQty) {
                                               return (
-                                                <p className="text-red-600">Cannot distribute more than available quantity ({availableQty})</p>
+                                                <div className="flex items-center gap-2 text-red-600">
+                                                  <AlertTriangle className="h-4 w-4" />
+                                                  <p>Cannot distribute more than available quantity ({availableQty})</p>
+                                                </div>
                                               );
                                             } else if (item.quantity === availableQty) {
                                               return (
-                                                <p className="text-orange-600">This will distribute all available items</p>
+                                                <div className="flex items-center gap-2 text-orange-600">
+                                                  <AlertTriangle className="h-4 w-4" />
+                                                  <p>This will distribute all available items</p>
+                                                </div>
                                               );
                                             }
                                             return null;
@@ -486,7 +502,7 @@ const DistributionPage: React.FC = () => {
             </div>
 
             {/* Submit Section */}
-            <div className="bg-gray-50 px-4 py-3 sm:px-6 rounded-lg flex items-center justify-between">
+            <div className="bg-gray-50 px-6 py-4 sm:px-8 rounded-lg flex items-center justify-between mt-6 border-t border-gray-200">
               <div className="text-sm text-gray-500">
                 All fields marked with * are required
               </div>

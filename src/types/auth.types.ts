@@ -3,14 +3,14 @@ export type UserRole = 'admin' | 'warehouse_manager' | 'team_lead' | 'approver';
 export type Permission = 'read' | 'write' | 'manage_users' | 'manage_roles' | 'manage_settings' | 'all';
 
 export interface User {
-  id: string;
   username: string;
-  email: string;
-  role: UserRole;
+  id?: string;
+  email?: string;
+  role?: UserRole;
   assigned_branch?: string;
-  created_at: string;
-  is_active: boolean;
-  is_staff: boolean;
+  created_at?: string;
+  is_active?: boolean;
+  is_staff?: boolean;
 }
 
 export interface AuthState {

@@ -11,8 +11,9 @@ interface AuthState {
   error: string | null;
 };
 
-interface AuthContextType {
+export interface AuthContextType {
   state: AuthState;
+  token: string | null;
   login: (credentials: { username: string; password: string }) => Promise<void>;
   logout: () => void;
   clearError: () => void;
@@ -61,7 +62,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         ...state,
         isAuthenticated: true,
-        user: action.payload.user,
+        user: action.payload.user || { username: 'admin', role: 'admin' },
         token: action.payload.token,
         isLoading: false,
         error: null,
@@ -160,6 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const contextValue = {
     state,
+    token: state.token,
     login,
     logout,
     clearError
@@ -173,9 +175,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 // Custom hook to use the auth context
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

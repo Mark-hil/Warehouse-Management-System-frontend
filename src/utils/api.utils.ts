@@ -3,6 +3,10 @@ export const handleResponse = async (response: Response) => {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.message || 'An error occurred');
   }
+  // For 204 No Content responses, return undefined instead of trying to parse JSON
+  if (response.status === 204) {
+    return undefined;
+  }
   return response.json();
 };
 
@@ -12,7 +16,7 @@ export const createHeaders = (token?: string) => {
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers['Authorization'] = `Token ${token}`;
   }
 
   return headers;

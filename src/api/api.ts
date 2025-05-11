@@ -92,13 +92,13 @@ class ApiClient {
   // Authentication endpoints
   public async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
-      const response = await this.api.post<LoginResponse>('/users/auth/token/login/', credentials);
+      const response = await this.api.post<{ token: string }>('/token/', credentials);
       console.log('Login response:', response.data);
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        return { token: response.data.token };
       }
-      return response.data;
+      throw new Error('No token received');
     } catch (error) {
       throw this.handleError(error as AxiosError);
     }

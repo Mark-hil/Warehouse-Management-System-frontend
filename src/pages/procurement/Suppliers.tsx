@@ -1,33 +1,35 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
-import { Plus, Edit2, Trash2, Building2, Phone, Mail, Star } from 'lucide-react';
+import { Plus, Edit2, Trash2, Building2, Phone, Mail, Star, Eye } from 'lucide-react';
 import Modal from '../../components/common/Modal';
 import type { Column } from '../../components/common/Table';
 import Table from '../../components/common/Table';
 import { Form, Input, Select, Button } from '../../components/forms';
+import { getSuppliers, createSupplier, updateSupplier, deleteSupplier } from '../../api/procurement';
 
-interface Supplier {
-  id: string;
-  name: string;
-  contactPerson: string;
-  email: string;
-  phone: string;
-  address: string;
+import { useAuth } from '../../context/AuthContext';
+
+import type { Supplier as ApiSupplier } from '../../types/procurement.types';
+interface ExtendedSupplier extends ApiSupplier {
   rating: number;
-  status: 'active' | 'inactive';
   totalOrders: number;
 }
 
 const Suppliers: React.FC = () => {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const { token } = useAuth();
+  const [suppliers, setSuppliers] = useState<ExtendedSupplier[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<ExtendedSupplier | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     contactPerson: '',
     email: '',
     phone: '',
     address: '',
-    status: 'active' as Supplier['status']
+    isActive: true,
+    city: '',
+    state: '',
+    zipCode: '',
+    country: ''
   });
 
   useEffect(() => {
@@ -36,29 +38,60 @@ const Suppliers: React.FC = () => {
 
   const fetchSuppliers = async () => {
     try {
-      const response = await fetch('/api/procurement/suppliers');
-      const data = await response.json();
-      setSuppliers(data);
+      console.log('Fetching suppliers...'); // Debug log
+      if (!token) {
+        console.error('No auth token available');
+        return;
+      }
+      const data = await getSuppliers(token);
+      console.log('Raw supplier data:', data); // Debug log
+
+      if (!Array.isArray(data)) {
+        console.error('Expected array of suppliers but got:', typeof data);
+        return;
+      }
+
+      // Transform API response to match our interface
+      const transformedData: ExtendedSupplier[] = data.map(supplier => ({
+        ...supplier,
+        rating: 5, // Default rating
+        totalOrders: 0 // Default total orders
+      }));
+
+      console.log('Transformed data:', transformedData); // Debug log
+      setSuppliers(transformedData);
     } catch (error) {
       console.error('Error fetching suppliers:', error);
+      // Show error in UI
+      alert('Failed to load suppliers. Please try again.');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (!token) {
+        console.error('No auth token available');
+        return;
+      }
+
+      const supplierData = {
+        supplier_name: formData.name,
+        contact_name: formData.contactPerson,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zip_code: formData.zipCode,
+        country: formData.country,
+        is_active: formData.isActive
+      };
+
       if (selectedSupplier) {
-        await fetch(`/api/procurement/suppliers/${selectedSupplier.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
-        });
+        await updateSupplier(token, selectedSupplier.supplier_id, supplierData);
       } else {
-        await fetch('/api/procurement/suppliers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
-        });
+        await createSupplier(token, supplierData);
       }
       setIsModalOpen(false);
       setSelectedSupplier(null);
@@ -68,7 +101,11 @@ const Suppliers: React.FC = () => {
         email: '',
         phone: '',
         address: '',
-        status: 'active'
+        isActive: true,
+        city: '',
+        state: '',
+        zipCode: '',
+        country: ''
       });
       fetchSuppliers();
     } catch (error) {
@@ -79,26 +116,50 @@ const Suppliers: React.FC = () => {
   const handleEdit = (supplier: Supplier) => {
     setSelectedSupplier(supplier);
     setFormData({
-      name: supplier.name,
-      contactPerson: supplier.contactPerson,
+      name: supplier.supplier_name,
+      contactPerson: supplier.contact_name,
       email: supplier.email,
       phone: supplier.phone,
       address: supplier.address,
-      status: supplier.status
+      isActive: supplier.is_active,
+      city: supplier.city,
+      state: supplier.state,
+      zipCode: supplier.zip_code,
+      country: supplier.country
     });
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this supplier?')) {
-      try {
-        await fetch(`/api/procurement/suppliers/${id}`, {
-          method: 'DELETE'
-        });
-        fetchSuppliers();
-      } catch (error) {
-        console.error('Error deleting supplier:', error);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewingSupplier, setViewingSupplier] = useState<ExtendedSupplier | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [supplierToDelete, setSupplierToDelete] = useState<ExtendedSupplier | null>(null);
+
+  const handleView = (supplier: ExtendedSupplier) => {
+    setViewingSupplier(supplier);
+    setViewModalOpen(true);
+  };
+
+  const handleDeleteClick = (supplier: ExtendedSupplier) => {
+    setSupplierToDelete(supplier);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    try {
+      if (!token || !supplierToDelete) {
+        console.error('No auth token or supplier available');
+        return;
       }
+      await deleteSupplier(token, supplierToDelete.supplier_id);
+      setDeleteModalOpen(false);
+      setSupplierToDelete(null);
+      fetchSuppliers();
+      // Show success message
+      alert('Supplier deleted successfully');
+    } catch (error) {
+      console.error('Error deleting supplier:', error);
+      alert('Failed to delete supplier. Please try again.');
     }
   };
 
@@ -119,15 +180,15 @@ const Suppliers: React.FC = () => {
     );
   };
 
-  const columns: Column<Supplier>[] = [
+  const columns: Column<ExtendedSupplier>[] = [
     {
-      header: 'Supplier',
-      accessor: (row: Supplier) => (
+      header: 'Company',
+      accessor: (row: ExtendedSupplier) => (
         <div className="flex items-center">
-          <Building2 className="w-4 h-4 mr-2 text-blue-500" />
+          <Building2 size={16} className="text-gray-400 mr-2" />
           <div>
-            <div className="font-medium">{row.name}</div>
-            <div className="text-sm text-gray-500">{row.contactPerson}</div>
+            <div className="font-medium">{row.supplier_name}</div>
+            <div className="text-sm text-gray-500">{row.contact_name}</div>
           </div>
         </div>
       )
@@ -160,14 +221,10 @@ const Suppliers: React.FC = () => {
     {
       header: 'Status',
       accessor: (row: Supplier) => (
-        <span
-          className={`px-2 py-1 text-xs rounded-full font-medium ${
-            row.status === 'active'
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
-          }`}
-        >
-          {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+          row.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
+          {row.is_active ? 'Active' : 'Inactive'}
         </span>
       )
     },
@@ -185,15 +242,25 @@ const Suppliers: React.FC = () => {
         <div className="flex space-x-2">
           <Button
             variant="secondary"
+            onClick={() => handleView(row)}
+            className="min-w-0 p-2"
+            title="View Details"
+          >
+            <Eye size={16} className="text-gray-600" />
+          </Button>
+          <Button
+            variant="secondary"
             onClick={() => handleEdit(row)}
             className="min-w-0 p-2"
+            title="Edit Supplier"
           >
             <Edit2 size={16} className="text-blue-600" />
           </Button>
           <Button
             variant="danger"
-            onClick={() => handleDelete(row.id)}
+            onClick={() => handleDeleteClick(row)}
             className="min-w-0 p-2"
+            title="Delete Supplier"
           >
             <Trash2 size={16} />
           </Button>
@@ -219,7 +286,11 @@ const Suppliers: React.FC = () => {
               email: '',
               phone: '',
               address: '',
-              status: 'active'
+              isActive: true,
+              city: '',
+              state: '',
+              zipCode: '',
+              country: ''
             });
             setIsModalOpen(true);
           }}
@@ -234,7 +305,7 @@ const Suppliers: React.FC = () => {
           columns={columns}
           data={suppliers}
           emptyMessage="No suppliers found"
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.supplier_id}
         />
       </div>
 
@@ -290,11 +361,43 @@ const Suppliers: React.FC = () => {
             placeholder="Enter company address"
             required
           />
+          <Input
+            label="City"
+            name="city"
+            value={formData.city}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, city: e.target.value })}
+            placeholder="Enter city"
+            required
+          />
+          <Input
+            label="State/Province"
+            name="state"
+            value={formData.state}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, state: e.target.value })}
+            placeholder="Enter state or province"
+            required
+          />
+          <Input
+            label="ZIP/Postal Code"
+            name="zipCode"
+            value={formData.zipCode}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, zipCode: e.target.value })}
+            placeholder="Enter ZIP or postal code"
+            required
+          />
+          <Input
+            label="Country"
+            name="country"
+            value={formData.country}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, country: e.target.value })}
+            placeholder="Enter country"
+            required
+          />
           <Select
             label="Status"
-            name="status"
-            value={formData.status}
-            onChange={(value: string) => setFormData({ ...formData, status: value as Supplier['status'] })}
+            name="isActive"
+            value={formData.isActive ? 'active' : 'inactive'}
+            onChange={(value: string) => setFormData({ ...formData, isActive: value === 'active' })}
             required
             options={[
               { value: 'active', label: 'Active' },
@@ -302,6 +405,90 @@ const Suppliers: React.FC = () => {
             ]}
           />
         </Form>
+      </Modal>
+
+      {/* View Supplier Modal */}
+      <Modal
+        isOpen={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        title="Supplier Details"
+      >
+        {viewingSupplier && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Company Name</h3>
+                <p className="mt-1">{viewingSupplier.supplier_name}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Contact Person</h3>
+                <p className="mt-1">{viewingSupplier.contact_name}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Email</h3>
+                <p className="mt-1">{viewingSupplier.email}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Phone</h3>
+                <p className="mt-1">{viewingSupplier.phone}</p>
+              </div>
+              <div className="col-span-2">
+                <h3 className="text-sm font-medium text-gray-500">Address</h3>
+                <p className="mt-1">{viewingSupplier.address}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">City</h3>
+                <p className="mt-1">{viewingSupplier.city}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">State/Province</h3>
+                <p className="mt-1">{viewingSupplier.state}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">ZIP/Postal Code</h3>
+                <p className="mt-1">{viewingSupplier.zip_code}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Country</h3>
+                <p className="mt-1">{viewingSupplier.country}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Status</h3>
+                <p className="mt-1">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    viewingSupplier.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {viewingSupplier.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end space-x-3">
+              <Button variant="secondary" onClick={() => setViewModalOpen(false)}>Close</Button>
+              <Button variant="primary" onClick={() => { setViewModalOpen(false); handleEdit(viewingSupplier); }}>Edit</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Delete Supplier"
+      >
+        {supplierToDelete && (
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Are you sure you want to delete supplier <span className="font-medium">{supplierToDelete.supplier_name}</span>?
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <Button variant="secondary" onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
+              <Button variant="danger" onClick={handleDelete}>Delete</Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

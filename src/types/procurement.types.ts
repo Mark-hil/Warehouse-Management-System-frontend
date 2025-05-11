@@ -1,17 +1,17 @@
 export interface Supplier {
-  id: string;
-  name: string;
-  contactPerson: string;
+  supplier_id: string;
+  supplier_name: string;
+  contact_name: string;
   email: string;
   phone: string;
   address: string;
   city: string;
   state: string;
-  zipCode: string;
+  zip_code: string;
   country: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PurchaseOrder {
@@ -28,6 +28,15 @@ export interface PurchaseOrder {
   createdAt: string;
   updatedAt: string;
   items: PurchaseOrderItem[];
+}
+
+export interface Item {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  unit: string;
+  price: number;
 }
 
 export interface PurchaseOrderItem {
