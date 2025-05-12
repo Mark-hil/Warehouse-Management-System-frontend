@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
-import { Plus, Edit2, Trash2, Building2, Phone, Mail, Star, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, Phone, Mail, Star, Eye } from 'lucide-react';
 import Modal from '../../components/common/Modal';
 import type { Column } from '../../components/common/Table';
 import Table from '../../components/common/Table';
@@ -8,8 +8,8 @@ import { getSuppliers, createSupplier, updateSupplier, deleteSupplier } from '..
 
 import { useAuth } from '../../context/AuthContext';
 
-import type { Supplier as ApiSupplier } from '../../types/procurement.types';
-interface ExtendedSupplier extends ApiSupplier {
+import type { Supplier } from '../../types/procurement.types';
+interface ExtendedSupplier extends Supplier {
   rating: number;
   totalOrders: number;
 }
@@ -18,7 +18,7 @@ const Suppliers: React.FC = () => {
   const { token } = useAuth();
   const [suppliers, setSuppliers] = useState<ExtendedSupplier[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSupplier, setSelectedSupplier] = useState<ExtendedSupplier | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     contactPerson: '',
@@ -36,33 +36,29 @@ const Suppliers: React.FC = () => {
     fetchSuppliers();
   }, []);
 
+  const extendSupplier = (supplier: Supplier): ExtendedSupplier => ({
+    ...supplier,
+    rating: 5, // Default rating
+    totalOrders: 0 // Default total orders
+  });
+
   const fetchSuppliers = async () => {
     try {
-      console.log('Fetching suppliers...'); // Debug log
       if (!token) {
         console.error('No auth token available');
         return;
       }
       const data = await getSuppliers(token);
-      console.log('Raw supplier data:', data); // Debug log
 
       if (!Array.isArray(data)) {
         console.error('Expected array of suppliers but got:', typeof data);
         return;
       }
 
-      // Transform API response to match our interface
-      const transformedData: ExtendedSupplier[] = data.map(supplier => ({
-        ...supplier,
-        rating: 5, // Default rating
-        totalOrders: 0 // Default total orders
-      }));
-
-      console.log('Transformed data:', transformedData); // Debug log
+      const transformedData = data.map(extendSupplier);
       setSuppliers(transformedData);
     } catch (error) {
       console.error('Error fetching suppliers:', error);
-      // Show error in UI
       alert('Failed to load suppliers. Please try again.');
     }
   };
@@ -113,8 +109,23 @@ const Suppliers: React.FC = () => {
     }
   };
 
-  const handleEdit = (supplier: Supplier) => {
-    setSelectedSupplier(supplier);
+  const handleEdit = (supplier: Supplier | ExtendedSupplier) => {
+    const basicSupplier: Supplier = {
+      supplier_id: supplier.supplier_id,
+      supplier_name: supplier.supplier_name,
+      contact_name: supplier.contact_name,
+      email: supplier.email,
+      phone: supplier.phone,
+      address: supplier.address,
+      city: supplier.city,
+      state: supplier.state,
+      zip_code: supplier.zip_code,
+      country: supplier.country,
+      is_active: supplier.is_active,
+      created_at: 'created_at' in supplier ? supplier.created_at : new Date().toISOString(),
+      updated_at: 'updated_at' in supplier ? supplier.updated_at : new Date().toISOString()
+    };
+    setSelectedSupplier(basicSupplier);
     setFormData({
       name: supplier.supplier_name,
       contactPerson: supplier.contact_name,
@@ -131,17 +142,47 @@ const Suppliers: React.FC = () => {
   };
 
   const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [viewingSupplier, setViewingSupplier] = useState<ExtendedSupplier | null>(null);
+  const [viewingSupplier, setViewingSupplier] = useState<Supplier | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [supplierToDelete, setSupplierToDelete] = useState<ExtendedSupplier | null>(null);
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
 
-  const handleView = (supplier: ExtendedSupplier) => {
-    setViewingSupplier(supplier);
+  const handleView = (supplier: Supplier | ExtendedSupplier) => {
+    const basicSupplier: Supplier = {
+      supplier_id: supplier.supplier_id,
+      supplier_name: supplier.supplier_name,
+      contact_name: supplier.contact_name,
+      email: supplier.email,
+      phone: supplier.phone,
+      address: supplier.address,
+      city: supplier.city,
+      state: supplier.state,
+      zip_code: supplier.zip_code,
+      country: supplier.country,
+      is_active: supplier.is_active,
+      created_at: 'created_at' in supplier ? supplier.created_at : new Date().toISOString(),
+      updated_at: 'updated_at' in supplier ? supplier.updated_at : new Date().toISOString()
+    };
+    setViewingSupplier(basicSupplier);
     setViewModalOpen(true);
   };
 
-  const handleDeleteClick = (supplier: ExtendedSupplier) => {
-    setSupplierToDelete(supplier);
+  const handleDeleteClick = (supplier: Supplier | ExtendedSupplier) => {
+    const basicSupplier: Supplier = {
+      supplier_id: supplier.supplier_id,
+      supplier_name: supplier.supplier_name,
+      contact_name: supplier.contact_name,
+      email: supplier.email,
+      phone: supplier.phone,
+      address: supplier.address,
+      city: supplier.city,
+      state: supplier.state,
+      zip_code: supplier.zip_code,
+      country: supplier.country,
+      is_active: supplier.is_active,
+      created_at: 'created_at' in supplier ? supplier.created_at : new Date().toISOString(),
+      updated_at: 'updated_at' in supplier ? supplier.updated_at : new Date().toISOString()
+    };
+    setSupplierToDelete(basicSupplier);
     setDeleteModalOpen(true);
   };
 
@@ -184,23 +225,16 @@ const Suppliers: React.FC = () => {
     {
       header: 'Company',
       accessor: (row: ExtendedSupplier) => (
-        <div className="flex items-center">
-          <Building2 size={16} className="text-gray-400 mr-2" />
-          <div>
-            <div className="font-medium">{row.supplier_name}</div>
-            <div className="text-sm text-gray-500">{row.contact_name}</div>
-          </div>
+        <div className="flex items-center space-x-2">
+          <Mail size={16} className="text-gray-400" />
+          <span>{row.email}</span>
         </div>
       )
     },
     {
       header: 'Contact',
-      accessor: (row: Supplier) => (
+      accessor: (row: ExtendedSupplier) => (
         <div className="space-y-1">
-          <div className="flex items-center text-sm">
-            <Mail className="w-4 h-4 mr-2 text-gray-400" />
-            {row.email}
-          </div>
           <div className="flex items-center text-sm">
             <Phone className="w-4 h-4 mr-2 text-gray-400" />
             {row.phone}
@@ -210,29 +244,23 @@ const Suppliers: React.FC = () => {
     },
     {
       header: 'Address',
-      accessor: (row: Supplier) => (
+      accessor: (row: ExtendedSupplier) => (
         <div className="text-sm">{row.address}</div>
       )
     },
     {
       header: 'Rating',
-      accessor: (row: Supplier) => <RatingStars rating={row.rating} />
+      accessor: (row: ExtendedSupplier) => <RatingStars rating={row.rating} />
     },
     {
       header: 'Status',
-      accessor: (row: Supplier) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          row.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
+      accessor: (row: ExtendedSupplier) => (
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-medium ${
+            row.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
           {row.is_active ? 'Active' : 'Inactive'}
-        </span>
-      )
-    },
-    {
-      header: 'Total Orders',
-      accessor: (row: Supplier) => (
-        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-          {row.totalOrders}
         </span>
       )
     },

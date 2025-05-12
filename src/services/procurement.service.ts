@@ -1,5 +1,5 @@
 import { api } from './api';
-import { PurchaseOrder, Supplier } from '../types/procurement.types';
+import { PurchaseOrder, Supplier, ProcurementRequest, ProcurementRequestItem, Item } from '../types/procurement.types';
 
 export class ProcurementService {
   private static instance: ProcurementService;
@@ -12,6 +12,11 @@ export class ProcurementService {
       ProcurementService.instance = new ProcurementService();
     }
     return ProcurementService.instance;
+  }
+
+  // Items
+  async getItems(): Promise<Item[]> {
+    return api.get<Item[]>('/inventory/items');
   }
 
   // Suppliers
@@ -29,6 +34,39 @@ export class ProcurementService {
 
   async updateSupplier(id: string, supplier: Partial<Supplier>): Promise<Supplier> {
     return api.put<Supplier>(`${this.baseUrl}/suppliers/${id}`, supplier);
+  }
+
+  // Procurement Requests
+  async getProcurementRequests(): Promise<ProcurementRequest[]> {
+    return api.get<ProcurementRequest[]>(`${this.baseUrl}/procurement/`);
+  }
+
+  async getProcurementRequest(id: number): Promise<ProcurementRequest> {
+    return api.get<ProcurementRequest>(`${this.baseUrl}/procurement/${id}/`);
+  }
+
+  async createProcurementRequest(request: Omit<ProcurementRequest, 'procurement_id' | 'requested_by_details' | 'approved_by_details'>): Promise<ProcurementRequest> {
+    return api.post<ProcurementRequest>(`${this.baseUrl}/procurement/`, request);
+  }
+
+  async updateProcurementRequest(id: number, request: Partial<ProcurementRequest>): Promise<ProcurementRequest> {
+    console.log('Updating procurement request:', { id, request });
+    try {
+      const response = await api.put<ProcurementRequest>(`${this.baseUrl}/procurement/${id}/`, request);
+      console.log('Update response:', response);
+      return response;
+    } catch (error) {
+      console.error('Update error:', error);
+      throw error;
+    }
+  }
+
+  async getProcurementRequestItems(requestId: number): Promise<ProcurementRequestItem[]> {
+    return api.get<ProcurementRequestItem[]>(`${this.baseUrl}/procurement/${requestId}/items/`);
+  }
+
+  async createProcurementRequestItem(item: Omit<ProcurementRequestItem, 'procurement_item_id' | 'item_details'>): Promise<ProcurementRequestItem> {
+    return api.post<ProcurementRequestItem>(`${this.baseUrl}/procurement-items/`, item);
   }
 
   async deleteSupplier(id: string): Promise<void> {
@@ -67,9 +105,7 @@ export class ProcurementService {
   }
 
   async getProcurementReport(startDate: string, endDate: string): Promise<any> {
-    return api.get(`${this.baseUrl}/reports/procurement`, {
-      params: { startDate, endDate }
-    });
+    return api.get(`${this.baseUrl}/reports/procurement?startDate=${startDate}&endDate=${endDate}`);
   }
 }
 

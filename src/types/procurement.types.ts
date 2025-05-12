@@ -31,12 +31,12 @@ export interface PurchaseOrder {
 }
 
 export interface Item {
-  id: string;
+  item_id: number;
   name: string;
   description: string;
-  category: string;
-  unit: string;
-  price: number;
+  unitPrice: string;
+  unitMeasurement: string;
+  category?: number;
 }
 
 export interface PurchaseOrderItem {
@@ -49,25 +49,28 @@ export interface PurchaseOrderItem {
   totalPrice: number;
 }
 
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+}
+
 export interface ProcurementRequest {
-  id: string;
-  requesterId: string;
-  title: string;
-  description: string;
-  urgency: 'low' | 'medium' | 'high' | 'critical';
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'ordered' | 'completed';
-  deadline: string;
-  notes: string;
-  createdAt: string;
-  updatedAt: string;
+  procurement_id: number;
+  request_date: string;
+  required_by: string;
+  status: 'pending' | 'approved' | 'rejected' | 'ordered' | 'completed';
+  requested_by: number;
+  requested_by_details?: User;
+  approved_by?: number;
+  approved_by_details?: User;
   items: ProcurementRequestItem[];
 }
 
 export interface ProcurementRequestItem {
-  id: string;
-  requestId: string;
-  itemId: string;
-  item?: Item;
-  quantity: number;
-  reason: string;
+  procurement_item_id: number;
+  procurement: number;
+  item: number;
+  item_details?: Item;
+  requested_quantity: number;
 }

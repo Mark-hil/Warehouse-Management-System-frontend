@@ -1,4 +1,5 @@
 import React from 'react';
+import { Toaster } from 'react-hot-toast';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { UIProvider } from './context/UIContext';
@@ -55,6 +56,7 @@ function App() {
     <AuthProvider>
       <UIProvider>
         <Router>
+          <Toaster position="top-right" />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/test-login" element={<TestLogin />} />
